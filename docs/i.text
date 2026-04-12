@@ -1,0 +1,259 @@
+# 🚀 Autonomous Mobile Robot – ROS2 Sensor Integration (GP_2026)
+
+## 📌 Overview
+
+This project implements a differential drive mobile robot using ROS2, integrating:
+
+* Wheel encoder odometry
+* IMU (Inertial Measurement Unit)
+* Sensor fusion using EKF (robot_localization)
+
+The system is designed to be clean, synchronized, and ready for SLAM and Navigation.
+
+---
+
+## 🧠 System Architecture
+
+```
+ESP32 (Encoders + IMU)
+        ↓
+Serial (/dev/ttyACM0)
+        ↓
+ROS2 Node (encoder_odometry)
+        ↓
+/odom + /imu
+        ↓
+EKF (robot_localization)
+        ↓
+/odometry/filtered
+```
+
+---
+
+## ⚙️ Hardware Setup
+
+* ESP32-S3
+* Encoders (Left & Right)
+* IMU sensor
+* Serial communication @ 115200 baud
+
+### 📤 Serial Format
+
+```
+ENC <L> <R> IMU <gx> <gy> <gz> <ax> <ay> <az>
+```
+
+Example:
+
+```
+ENC -42726 -34800 IMU 0.0019 -0.0009 -0.0004 -0.913 0.077 9.721
+```
+
+---
+
+## 🤖 ROS2 Node (encoder_odometry)
+
+### Responsibilities:
+
+* Read serial data
+* Parse encoder + IMU
+* Compute odometry
+* Publish:
+
+  * `/odom` (nav_msgs/Odometry)
+  * `/imu` (sensor_msgs/Imu)
+* Broadcast TF:
+
+  * `odom → base_link`
+
+---
+
+## 🧭 TF Tree
+
+```
+odom
+  └── base_link
+        └── imu_link
+```
+
+### IMU Static Transform:
+
+```
+x = 0.30 m  
+y = 0.10 m  
+z = 0.47 m  
+rotation = 0 0 0
+```
+
+---
+
+## 📡 Topics
+
+| Topic              | Type              | Description            |
+| ------------------ | ----------------- | ---------------------- |
+| /odom              | nav_msgs/Odometry | Encoder-based odometry |
+| /imu               | sensor_msgs/Imu   | Raw IMU data           |
+| /odometry/filtered | nav_msgs/Odometry | EKF output             |
+
+---
+
+## 🔥 Key Design Decision
+
+### ✅ Single Node for Serial
+
+```
+ONLY ONE NODE reads /dev/ttyACM0
+```
+
+✔ Prevents serial conflicts
+✔ Ensures synchronization
+✔ Cleaner architecture
+
+---
+
+## 🚀 Launch System
+
+### Full system launch:
+
+```bash
+ros2 launch encoder_odometry full_system.launch.py
+```
+
+### Launch includes:
+
+* encoder_odom_node
+* static_transform_publisher (imu_link)
+* EKF node
+* RViz (optional)
+
+---
+
+## 🧪 Validation
+
+### ✔ IMU Check
+
+```bash
+ros2 topic echo /imu
+```
+
+Expected:
+
+* `angular_velocity.z` changes when rotating
+* `linear_acceleration.z ≈ 9.8`
+
+---
+
+### ✔ Plot IMU
+
+```bash
+rqt_plot
+```
+
+Topic:
+
+```
+/imu/angular_velocity/z
+```
+
+---
+
+### ✔ Odometry
+
+```bash
+ros2 topic echo /odom
+```
+
+---
+
+## 🔄 EKF (robot_localization)
+
+### Install:
+
+```bash
+sudo apt install ros-humble-robot-localization
+```
+
+---
+
+### Config File:
+
+```
+encoder_odometry/config/ekf.yaml
+```
+
+### Inputs:
+
+* `/odom`
+* `/imu`
+
+### Output:
+
+```
+/odometry/filtered
+```
+
+---
+
+## 🎯 EKF Purpose
+
+| Sensor   | Issue |
+| -------- | ----- |
+| Odometry | Drift |
+| IMU      | Noise |
+
+### Solution:
+
+```
+EKF → Sensor Fusion → Stable Localization
+```
+
+---
+
+## ⚠️ Important Notes
+
+* Do NOT run multiple nodes reading serial
+* Do NOT compute yaw manually
+* Always keep timestamps synchronized
+* IMU frame must match TF (`imu_link`)
+
+---
+
+## 🧱 Current Status
+
+```
+✔ Encoder Odometry → DONE
+✔ IMU Integration → DONE
+✔ TF Tree → DONE
+✔ Launch System → DONE
+✔ EKF Integration → DONE
+```
+
+---
+
+## 🚀 Next Steps
+
+* SLAM (Mapping)
+* Navigation Stack
+* Path Planning
+* Autonomous Control
+
+---
+
+## 👨‍💻 Developer Notes
+
+* Clean architecture is maintained
+* System is scalable for additional sensors (LiDAR, Camera)
+* Ready for real-world deployment
+
+---
+
+## 📌 Project Name
+
+```
+GP_2026 – Autonomous Forklift Robot
+```
+
+---
+
+🔥 This system is now ready for advanced robotics tasks.
+

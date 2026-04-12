@@ -1,6 +1,10 @@
+// 🔥 أهم تعديل: استخدام ROS clock الصحيح
+// بدل now() استخدم this->get_clock()->now()
+
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -24,13 +28,10 @@ public:
     last_left_counts_(0), last_right_counts_(0),
     first_read_(true)
   {
-    // ================= PARAMETERS =================
     declare_parameter<std::string>("port", "/dev/ttyACM0");
     declare_parameter<int>("baud", 115200);
     declare_parameter<double>("wheel_radius", 0.075);
     declare_parameter<double>("wheel_base", 0.60);
-
-    // NEW encoder values
     declare_parameter<int>("ticks_per_rev_left",  870);
     declare_parameter<int>("ticks_per_rev_right", 800);
 
@@ -52,24 +53,22 @@ public:
     }
 
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", 10);
+    imu_pub_  = create_publisher<sensor_msgs::msg::Imu>("imu", 10);
+
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
     timer_ = create_wall_timer(
       std::chrono::milliseconds(50),
       std::bind(&EncoderOdomNode::timerCallback, this));
 
-    last_time_ = now();
+    // 🔥 FIX
+    last_time_ = this->get_clock()->now();
 
-    RCLCPP_INFO(get_logger(), "Encoder odometry running on %s", port_.c_str());
-  }
-
-  ~EncoderOdomNode()
-  {
-    if (fd_ >= 0) close(fd_);
+    RCLCPP_INFO(get_logger(), "Encoder + IMU running on %s", port_.c_str());
   }
 
 private:
-  // ================= SERIAL =================
+
   bool openSerial()
   {
     fd_ = open(port_.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -79,9 +78,8 @@ private:
     tcgetattr(fd_, &tio);
     cfmakeraw(&tio);
 
-    speed_t speed = B115200;
-    cfsetispeed(&tio, speed);
-    cfsetospeed(&tio, speed);
+    cfsetispeed(&tio, B115200);
+    cfsetospeed(&tio, B115200);
 
     tio.c_cflag |= (CLOCAL | CREAD);
     tio.c_cflag &= ~PARENB;
@@ -109,7 +107,6 @@ private:
     return true;
   }
 
-  // ================= MAIN =================
   void timerCallback()
   {
     std::string line;
@@ -123,12 +120,29 @@ private:
     if (line.rfind("ENC", 0) != 0) return;
 
     std::istringstream iss(line);
+
     std::string tag;
     long left_counts, right_counts;
 
     if (!(iss >> tag >> left_counts >> right_counts)) return;
 
-    rclcpp::Time now_time = now();
+    double gx=0, gy=0, gz=0, ax=0, ay=0, az=0;
+    bool has_imu = false;
+
+    size_t imu_pos = line.find("IMU");
+    if (imu_pos != std::string::npos)
+    {
+      std::istringstream imu_stream(line.substr(imu_pos));
+      std::string imu_tag;
+
+      if (imu_stream >> imu_tag >> gx >> gy >> gz >> ax >> ay >> az)
+      {
+        has_imu = true;
+      }
+    }
+
+    // 🔥 FIX الأساسي
+    rclcpp::Time now_time = this->get_clock()->now();
 
     if (first_read_) {
       last_left_counts_  = left_counts;
@@ -148,36 +162,63 @@ private:
     if (dt <= 0.0) return;
     last_time_ = now_time;
 
-    // Quadrature encoders
     double ticks_L = 4.0 * ticks_per_rev_left_;
     double ticks_R = 4.0 * ticks_per_rev_right_;
 
     double dL = (dL_ticks / ticks_L) * (2.0 * M_PI * R_);
     double dR = (dR_ticks / ticks_R) * (2.0 * M_PI * R_);
 
-    // Differential drive kinematics
     double d_center = (dR + dL) / 2.0;
     double d_theta  = (dL - dR) / L_;
 
-    // Mid-point integration (IMPORTANT)
     double theta_mid = theta_ + d_theta / 2.0;
 
     x_     += d_center * std::cos(theta_mid);
     y_     += d_center * std::sin(theta_mid);
     theta_ += d_theta;
 
-    // Normalize angle
     theta_ = std::atan2(std::sin(theta_), std::cos(theta_));
 
     double v     = d_center / dt;
     double omega = d_theta  / dt;
 
     publishOdom(now_time, v, omega);
+
+    if (has_imu)
+    {
+      sensor_msgs::msg::Imu imu;
+
+      imu.header.stamp = now_time;
+      imu.header.frame_id = "imu_link";
+
+      imu.angular_velocity.x = gx;
+      imu.angular_velocity.y = gy;
+      imu.angular_velocity.z = gz;
+
+      imu.linear_acceleration.x = ax;
+      imu.linear_acceleration.y = ay;
+      imu.linear_acceleration.z = az;
+
+      imu.orientation.w = 1.0;
+
+      imu.angular_velocity_covariance[0] = 0.01;
+      imu.angular_velocity_covariance[4] = 0.01;
+      imu.angular_velocity_covariance[8] = 0.01;
+
+      imu.linear_acceleration_covariance[0] = 0.1;
+      imu.linear_acceleration_covariance[4] = 0.1;
+      imu.linear_acceleration_covariance[8] = 0.1;
+
+      imu.orientation_covariance[0] = -1;
+
+      imu_pub_->publish(imu);
+    }
   }
 
   void publishOdom(const rclcpp::Time &stamp, double v, double omega)
   {
     nav_msgs::msg::Odometry odom;
+
     odom.header.stamp = stamp;
     odom.header.frame_id = frame_id_;
     odom.child_frame_id = child_frame_id_;
@@ -193,18 +234,28 @@ private:
     odom.pose.pose.orientation.z = q.z();
     odom.pose.pose.orientation.w = q.w();
 
+    odom.pose.covariance[0]  = 0.05;
+    odom.pose.covariance[7]  = 0.05;
+    odom.pose.covariance[35] = 0.1;
+
     odom.twist.twist.linear.x  = v;
     odom.twist.twist.angular.z = omega;
 
-    // اpublished باستخدام الـ odom_pub_ اللي اتعرف في الـ constructor فوق
+    odom.twist.covariance[0]  = 0.02;
+    odom.twist.covariance[7]  = 0.02;
+    odom.twist.covariance[35] = 0.05;
+
     odom_pub_->publish(odom);
 
     geometry_msgs::msg::TransformStamped tf;
+
     tf.header.stamp = stamp;
     tf.header.frame_id = frame_id_;
     tf.child_frame_id = child_frame_id_;
+
     tf.transform.translation.x = x_;
     tf.transform.translation.y = y_;
+
     tf.transform.rotation.x = q.x();
     tf.transform.rotation.y = q.y();
     tf.transform.rotation.z = q.z();
@@ -213,7 +264,6 @@ private:
     tf_broadcaster_->sendTransform(tf);
   }
 
-  // ================= MEMBERS =================
   int fd_;
   std::string port_;
   int baud_;
@@ -225,6 +275,8 @@ private:
   std::string buffer_;
 
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
+
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   rclcpp::TimerBase::SharedPtr timer_;
 
