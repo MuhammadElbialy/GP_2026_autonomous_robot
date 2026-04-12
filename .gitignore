@@ -22,3 +22,6 @@ __pycache__/
 # Arduino / PlatformIO
 .pio/
 *.bin
+
+
+.project.txt
