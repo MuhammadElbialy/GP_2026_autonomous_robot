@@ -1,6 +1,3 @@
-// 🔥 أهم تعديل: استخدام ROS clock الصحيح
-// بدل now() استخدم this->get_clock()->now()
-
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -61,7 +58,6 @@ public:
       std::chrono::milliseconds(50),
       std::bind(&EncoderOdomNode::timerCallback, this));
 
-    // 🔥 FIX
     last_time_ = this->get_clock()->now();
 
     RCLCPP_INFO(get_logger(), "Encoder + IMU running on %s", port_.c_str());
@@ -141,13 +137,13 @@ private:
       }
     }
 
-    // 🔥 FIX الأساسي
-    rclcpp::Time now_time = this->get_clock()->now();
+    // 🔥 FIX: unified timestamp
+    auto now = this->get_clock()->now();
 
     if (first_read_) {
       last_left_counts_  = left_counts;
       last_right_counts_ = right_counts;
-      last_time_ = now_time;
+      last_time_ = now;
       first_read_ = false;
       return;
     }
@@ -158,9 +154,9 @@ private:
     last_left_counts_  = left_counts;
     last_right_counts_ = right_counts;
 
-    double dt = (now_time - last_time_).seconds();
+    double dt = (now - last_time_).seconds();
     if (dt <= 0.0) return;
-    last_time_ = now_time;
+    last_time_ = now;
 
     double ticks_L = 4.0 * ticks_per_rev_left_;
     double ticks_R = 4.0 * ticks_per_rev_right_;
@@ -182,13 +178,13 @@ private:
     double v     = d_center / dt;
     double omega = d_theta  / dt;
 
-    publishOdom(now_time, v, omega);
+    publishOdom(now, v, omega);
 
     if (has_imu)
     {
       sensor_msgs::msg::Imu imu;
 
-      imu.header.stamp = now_time;
+      imu.header.stamp = now;
       imu.header.frame_id = "imu_link";
 
       imu.angular_velocity.x = gx;
@@ -234,16 +230,8 @@ private:
     odom.pose.pose.orientation.z = q.z();
     odom.pose.pose.orientation.w = q.w();
 
-    odom.pose.covariance[0]  = 0.05;
-    odom.pose.covariance[7]  = 0.05;
-    odom.pose.covariance[35] = 0.1;
-
     odom.twist.twist.linear.x  = v;
     odom.twist.twist.angular.z = omega;
-
-    odom.twist.covariance[0]  = 0.02;
-    odom.twist.covariance[7]  = 0.02;
-    odom.twist.covariance[35] = 0.05;
 
     odom_pub_->publish(odom);
 

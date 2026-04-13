@@ -4,12 +4,13 @@ ekf_filter_node:
     # =========================
     # GENERAL
     # =========================
-    frequency: 10.0
-    sensor_timeout: 2.0
+    frequency: 30.0              # 🔥 مهم للـ SLAM
+    sensor_timeout: 0.1          # 🔥 مهم للـ stability
 
     two_d_mode: true
 
     publish_tf: true
+
     map_frame: map
     odom_frame: odom
     base_link_frame: base_link
@@ -21,7 +22,7 @@ ekf_filter_node:
     # TIMING
     # =========================
     transform_time_offset: 0.0
-    transform_timeout: 1.0
+    transform_timeout: 0.1       # 🔥 مهم
 
     # =========================
     # DEBUG
@@ -30,13 +31,13 @@ ekf_filter_node:
     debug: false
 
     # =========================
-    # ODOM INPUT (🔥 FIX هنا)
+    # ODOM INPUT
     # =========================
     odom0: /odom
 
     odom0_config: [
       true,  true,  false,   # x, y
-      false, false, true,    # 🔥 yaw ON (مهم جدًا)
+      false, false, true,    # yaw
       true,  false, false,   # vx
       false, false, true,    # wz
       false, false, false
@@ -51,10 +52,10 @@ ekf_filter_node:
     imu0: /imu
 
     imu0_config: [
-      false, false, false,
-      false, false, false,
-      false, false, false,
-      false, false, true,    # gyro z
+      false, false, false,   # position
+      false, false, false,   # orientation (roll/pitch/yaw from imu OFF)
+      false, false, false,   # linear velocity
+      false, false, true,    # angular velocity (gyro z ONLY)
       false, false, false
     ]
 
