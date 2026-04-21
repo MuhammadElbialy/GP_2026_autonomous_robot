@@ -23,5 +23,5 @@ __pycache__/
 .pio/
 *.bin
 
-
+src/rplidar_ros/
 src/.project.txt

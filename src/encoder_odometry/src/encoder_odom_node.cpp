@@ -25,7 +25,7 @@ public:
     last_left_counts_(0), last_right_counts_(0),
     first_read_(true)
   {
-    declare_parameter<std::string>("port", "/dev/ttyACM0");
+    declare_parameter<std::string>("port", "/dev/ttyACM1");
     declare_parameter<int>("baud", 115200);
     declare_parameter<double>("wheel_radius", 0.075);
     declare_parameter<double>("wheel_base", 0.60);
@@ -106,8 +106,18 @@ private:
   void timerCallback()
   {
     std::string line;
+    std::string latest_valid_line = "";
+
+    // Read everything to empty the serial buffer, but only save the newest line
     while (readLine(line)) {
-      processLine(line);
+      if (line.rfind("ENC", 0) == 0) {
+        latest_valid_line = line;
+      }
+    }
+
+    // Process only the single most recent data packet
+    if (!latest_valid_line.empty()) {
+      processLine(latest_valid_line);
     }
   }
 
