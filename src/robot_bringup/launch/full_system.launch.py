@@ -24,7 +24,7 @@ def generate_launch_description():
             executable='encoder_odom_node',
             name='encoder_odometry_node',
             parameters=[{
-                'port': '/dev/ttyACM1'
+                'port': '/dev/ttyACM0'
             }],
             output='screen'
         ),
@@ -60,11 +60,5 @@ def generate_launch_description():
         # =========================
         # 🔹 RViz
         # =========================
-        Node(
-            package='rviz2',
-            executable='rviz2',
-            name='rviz2',
-            arguments=['-d', rviz_config_path],
-            output='screen'
-        ),
+        
     ])

@@ -15,7 +15,9 @@ def generate_launch_description():
                 'serial_port': '/dev/ttyUSB0',
                 'serial_baudrate': 115200,
                 'frame_id': 'laser_frame',
-
+            
+                'flip_x_axis': True,
+                'inverted': True,
                 # 🔥 الحل الأساسي للمشكلة
                 'angle_compensate': True,
 
@@ -31,7 +33,7 @@ def generate_launch_description():
             name='laser_tf',
             arguments=[
                 '0', '0', '0',
-                '0', '3.14', '0',
+                '0', '0', '0', '1',   # 🔥 identity (no rotation)
                 'base_link',
                 'laser_frame'
             ],

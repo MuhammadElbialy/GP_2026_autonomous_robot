@@ -23,9 +23,9 @@ slam_toolbox:
     # ======================
     # ⏱️ Timing (متظبط)
     # ======================
-    transform_timeout: 0.3          # كان عالي → بيعمل lag
+    transform_timeout: 1.0          # كان عالي → بيعمل lag
     tf_buffer_duration: 30.0        # مهم للـ TF stability
-    minimum_time_interval: 0.3      # يمنع overload
+    minimum_time_interval: 0.4      # يمنع overload
 
     map_update_interval: 1.0
 
@@ -44,8 +44,8 @@ slam_toolbox:
     # ======================
     # ⚙️ Scan handling (🔥 أهم جزء)
     # ======================
-    throttle_scans: 3               # بدل 5 (5 كان بيبطّأ زيادة)
-    scan_queue_size: 10             # بدل buffer misuse
+    throttle_scans: 4              # بدل 5 (5 كان بيبطّأ زيادة)
+    scan_queue_size: 20             # بدل buffer misuse
     scan_buffer_size: 50            # كان 200 تقيل جداً
     scan_buffer_maximum_scan_distance: 10.0
 

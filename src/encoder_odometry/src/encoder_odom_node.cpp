@@ -25,7 +25,7 @@ public:
     last_left_counts_(0), last_right_counts_(0),
     first_read_(true)
   {
-    declare_parameter<std::string>("port", "/dev/ttyACM1");
+    declare_parameter<std::string>("port", "/dev/ttyACM0");
     declare_parameter<int>("baud", 115200);
     declare_parameter<double>("wheel_radius", 0.075);
     declare_parameter<double>("wheel_base", 0.60);

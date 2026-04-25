@@ -47,11 +47,21 @@ def generate_launch_description():
         parameters=[slam_params_file]
     )
 
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', '/home/elbialy/GP_2026/slam_config.rviz'],
+        output='screen'
+    )
+
     # ======================
     # 🚀 Launch
     # ======================
     return LaunchDescription([
         odom_launch,
         lidar_launch,
-        slam
+        slam,
+        rviz_node
+        
     ])
