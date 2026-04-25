@@ -23,7 +23,7 @@ slam_toolbox:
     # ======================
     # ⏱️ Timing (متظبط)
     # ======================
-    transform_timeout: 1.0          # كان عالي → بيعمل lag
+    transform_timeout: 0.3          # كان عالي → بيعمل lag
     tf_buffer_duration: 30.0        # مهم للـ TF stability
     minimum_time_interval: 0.4      # يمنع overload
 
@@ -39,14 +39,14 @@ slam_toolbox:
     # 📡 Laser settings (🔥 FIX مهم)
     # ======================
     min_laser_range: 0.2            # كان غلط باسم minimum_*
-    max_laser_range: 12.0           # كان غلط باسم maximum_*
+    max_laser_range: 8.0           # كان غلط باسم maximum_*
 
     # ======================
     # ⚙️ Scan handling (🔥 أهم جزء)
     # ======================
-    throttle_scans: 4              # بدل 5 (5 كان بيبطّأ زيادة)
-    scan_queue_size: 20             # بدل buffer misuse
-    scan_buffer_size: 50            # كان 200 تقيل جداً
+    throttle_scans: 1              # بدل 5 (5 كان بيبطّأ زيادة)
+    scan_queue_size: 50             # بدل buffer misuse
+    scan_buffer_size: 30            # كان 200 تقيل جداً
     scan_buffer_maximum_scan_distance: 10.0
 
     # ======================
