@@ -68,14 +68,7 @@
   </link>
       <!-- BASE_FOOTPRINT LINK -->
 
-    <joint name="base_footprint_joint" type="fixed">
-        <parent link="base_link"/>
-        <child link="base_footprint"/>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-    </joint>
-
-    <link name="base_footprint">
-    </link>
+    
 
 
 
@@ -297,7 +290,7 @@
     </collision>
   </link>
   <joint
-    name="RB_below_link"
+    name="RB_below_joint"
     type="continuous">
     <origin
       xyz="-0.0295228180170215 -0.0345 -0.0925076162853426"

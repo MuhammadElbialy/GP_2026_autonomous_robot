@@ -12,7 +12,7 @@ def generate_launch_description():
             name='rplidar_node',
             output='screen',
             parameters=[{
-                'serial_port': '/dev/ttyUSB0',
+                'serial_port': '/dev/ttyUSB1',
                 'serial_baudrate': 115200,
                 'frame_id': 'laser_frame',
             
@@ -27,17 +27,17 @@ def generate_launch_description():
         ),
 
         # 🔴 Static TF: base_link → laser (KEEP AS IS)
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='laser_tf',
-            arguments=[
-                '0', '0', '0',
-                '0', '0', '0', '1',   # 🔥 identity (no rotation)
-                'base_link',
-                'laser_frame'
-            ],
-            output='screen'
-        )
+        # Node(
+        #     package='tf2_ros',
+        #     executable='static_transform_publisher',
+        #     name='laser_tf',
+        #     arguments=[
+        #         '0', '0', '0',
+        #         '0', '0', '0', '1',   # 🔥 identity (no rotation)
+        #         'base_link',
+        #         'laser_frame'
+        #     ],
+        #     output='screen'
+        # )
 
     ])

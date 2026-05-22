@@ -12,13 +12,24 @@ def generate_launch_description():
     pkg_share = get_package_share_directory(pkg_name)
 
     # URDF/XACRO file
-    xacro_file = os.path.join(pkg_share, 'urdf', 'final2.xml')
+    xacro_file = os.path.join(
+        pkg_share,
+        'urdf',
+        'final2.xml'
+    )
 
     doc = xacro.process_file(xacro_file)
-    robot_description = {"robot_description": doc.toxml()}
 
-    # 1. تحديد مسار ملف إعدادات RViz
-    rviz_config_path = os.path.join(pkg_share, 'rviz', 'view_robot.rviz')
+    robot_description = {
+        "robot_description": doc.toxml()
+    }
+
+    # RViz config
+    rviz_config_path = os.path.join(
+        pkg_share,
+        'rviz',
+        'view_robot.rviz'
+    )
 
     # Robot State Publisher
     rsp = Node(
@@ -26,6 +37,20 @@ def generate_launch_description():
         executable='robot_state_publisher',
         output='screen',
         parameters=[robot_description]
+    )
+
+    # base_link -> base_footprint
+    base_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_link_to_base_footprint',
+        arguments=[
+            '0', '0', '0.31',
+            '0', '0', '0', '1',
+            'base_link',
+            'base_footprint'
+        ],
+        output='screen'
     )
 
     # Joint State Publisher GUI
@@ -40,12 +65,12 @@ def generate_launch_description():
         package='rviz2',
         executable='rviz2',
         output='screen',
-        # 2. تمرير ملف الإعدادات كأرجومنت عشان يفتح عليه أوتوماتيك
-        arguments=['-d', rviz_config_path] 
+        arguments=['-d', rviz_config_path]
     )
 
     return LaunchDescription([
         rsp,
+        base_tf,
         jsp,
         rviz
     ])
